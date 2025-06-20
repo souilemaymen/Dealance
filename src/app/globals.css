@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+  will-change: scroll-position;
+}
+
+@layer base {
+  body {
+    @apply bg-white-50 font-dosis text-white-300;
+  }
+}
+
+@layer utilities {
+  .container {
+    @apply max-w-7xl mx-auto ~px-12/20 pb-36;
+  }
+}
+
+.text-gradient {
+  -webkit-text-fill-color: transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(48, 37, 70, 0.7);
+  border-radius: 10px;
+}
+
+::-webkit-scrol-track {
+  background: transparent;
+}
+
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner {
+  -moz-appearance: textfield; /* Firefox */
+}
