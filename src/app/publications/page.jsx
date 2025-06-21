@@ -162,23 +162,25 @@ const submitPublication = async (e) => {
               <span className="group-hover:tracking-wider transition-all">Créer une publication</span>
             </button>
           </div>
-
-          {/* CORRECTION 1: Utilisation de _id comme clé unique */}
-          {/* CORRECTION 2: Gestion des valeurs non définies avec ?. et || */}
-          <div className="space-y-6">
-            {publications.map((pub) => (
-              <div 
-                key={pub._id}  // Utilisez _id au lieu de id
-                className="bg-white-100 dark:bg-white-200 rounded-xl shadow-lg overflow-hidden transition-all duration-300"
-              >
-                <div className="p-6 border-b border-white-200 dark:border-white-100">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 rounded-full bg-white-300 dark:bg-white-100"></div>
-                      <div>
-                        <h3 className="font-dosis font-bold text-white-300 dark:text-white-50">
-                          {pub.userId?.fullName || 'Utilisateur inconnu'}
-                        </h3>
+           <div className="space-y-6">
+        {publications.map((pub) => (
+          <div key={pub._id} className="bg-white-100 dark:bg-white-200 rounded-xl shadow-lg overflow-hidden transition-all duration-300">
+            <div className="p-6 border-b border-white-200 dark:border-white-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  {pub.userId?.profileImage ? (
+                    <img 
+                      src={pub.userId.profileImage} 
+                      alt="Profile" 
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-white-300 dark:bg-white-100"></div>
+                  )}
+                  <div>
+                    <h3 className="font-dosis font-bold text-white-300 dark:text-white-50">
+                      {pub.userId?.fullName || 'Utilisateur inconnu'}
+                    </h3>
                         <p className="text-sm font-geist-mono text-white-200 dark:text-white-100">
                           {pub.userId?.userType || 'Membre'}
                           <span className="mx-2"></span> 
