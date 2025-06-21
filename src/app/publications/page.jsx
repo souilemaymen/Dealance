@@ -171,7 +171,7 @@ const submitPublication = async (e) => {
                   {pub.userId?.profileImage ? (
                     <img 
                       src={pub.userId.profileImage} 
-                      alt="Profile" 
+                      alt="Profile"
                       className="w-12 h-12 rounded-full object-cover"
                     />
                   ) : (

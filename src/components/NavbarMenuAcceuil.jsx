@@ -5,8 +5,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion'; 
 import Link from "next/link";
 import Button from './Button';
-import { Menu, X, MessageSquare, LogOut } from 'lucide-react'; // Ajout de l'icône LogOut
-
+import { Menu, X, MessageSquare, LogOut } from 'lucide-react';
 
 const NavbarMenuAcceuil = () => {
   const [showNav, setShowNav] = useState(true);
@@ -14,6 +13,7 @@ const NavbarMenuAcceuil = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
   const [userId, setUserId] = useState(null);
+  const [userData, setUserData] = useState(null); // Nouvel état pour les données utilisateur
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,37 +39,37 @@ const NavbarMenuAcceuil = () => {
   }, [isMenuOpen]);
 
   useEffect(() => {
-    const fetchUserId = async () => {
+    const fetchUserData = async () => {
       try {
         const res = await fetch("/api/auth/session");
         const data = await res.json();
         if (res.ok && data.userId) {
           setUserId(data.userId);
+          
+          // Récupérer les données complètes de l'utilisateur
+          const userRes = await fetch(`/api/user?userId=${data.userId}`);
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            setUserData(userData);
+          }
         }
       } catch (err) {
-        console.error("Error fetching user ID", err);
+        console.error("Error fetching user data", err);
       }
     };
 
-    fetchUserId();
+    fetchUserData();
   }, []);
 
-  // Fonction de déconnexion
-  // Nouvelle fonction de déconnexion
   const handleLogout = async () => {
     try {
-      // Appeler l'endpoint de déconnexion
       const response = await fetch('/api/auth/logout', {
         method: 'POST'
       });
       
       if (response.ok) {
-        // Rediriger vers la page de connexion
         router.push('/login');
-        // Forcer le rafraîchissement pour vider le cache
         router.refresh();
-      } else {
-        console.error('Échec de la déconnexion');
       }
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
@@ -102,6 +102,24 @@ const NavbarMenuAcceuil = () => {
             >
               Deallance
             </span>
+            
+            {/* Affichage du profil utilisateur à côté de "Deallance" */}
+            {userData && (
+              <div className="flex items-center gap-2 ml-4">
+                {userData.profileImage ? (
+                  <img 
+                    src={userData.profileImage} 
+                    alt="Profile" 
+                    className="w-8 h-8 rounded-full object-cover border-2 border-purple-500"
+                  />
+                ) : (
+                  <div className="bg-gray-200 border-2 border-dashed rounded-full w-8 h-8" />
+                )}
+                <span className="text-sm font-medium text-gray-800">
+                  {userData.fullName}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Navigation principale */}
@@ -170,6 +188,24 @@ const NavbarMenuAcceuil = () => {
             transition={{ duration: 0.3 }}
             className="fixed inset-0 bg-white/70 backdrop-blur-xl z-40 flex flex-col items-center justify-center space-y-8 text-gray-800 font-semibold text-xl md:hidden"
           >
+            {/* Section profil en version mobile */}
+            {userData && (
+              <div className="absolute top-5 left-5 flex items-center gap-3">
+                {userData.profileImage ? (
+                  <img 
+                    src={userData.profileImage} 
+                    alt="Profile" 
+                    className="w-10 h-10 rounded-full object-cover border-2 border-purple-500"
+                  />
+                ) : (
+                  <div className="bg-gray-200 border-2 border-dashed rounded-full w-10 h-10" />
+                )}
+                <span className="text-xl font-medium text-gray-800">
+                  {userData.fullName}
+                </span>
+              </div>
+            )}
+            
             <span
               className="cursor-pointer text-4xl font-medium tracking-wider hover:text-black transition"
               onClick={() => {
@@ -214,7 +250,7 @@ const NavbarMenuAcceuil = () => {
               className="cursor-pointer text-4xl font-medium tracking-wider bg-white-200 text-white-50 px-6 py-3 rounded-lg mt-4"
               onClick={() => {
                 if (userId) {
-                  router.push(`/app/dashboard/${userId}`);
+                  router.push(`/dashboard`);
                   setIsMenuOpen(false);
                 }
               }}
@@ -222,7 +258,6 @@ const NavbarMenuAcceuil = () => {
               Dashboard
             </span>
             
-            {/* Bouton de déconnexion - Version mobile */}
             <button
               onClick={() => {
                 handleLogout();

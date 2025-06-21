@@ -302,10 +302,8 @@ const Acceuil = () => {
             </div>
           </div>
       <Footer/>
-    
-        </div>
-    
+
+        </div>  
   );
 };
-
 export default Acceuil;
