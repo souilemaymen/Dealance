@@ -3,7 +3,6 @@
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -47,33 +46,30 @@ const ReadOnlyField = ({
 const AccountPage = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        // Étape 1: Récupérer le userId depuis la session via les cookies HTTP-Only
-        const sessionRes = await fetch("/api/auth/session");
+        const sessionRes = await fetch("/api/auth/session", {
+          credentials: "include"
+        });
+
+        if (!sessionRes.ok) return;
+        
         const sessionData = await sessionRes.json();
         
-        if (!sessionRes.ok || !sessionData.userId) {
-          throw new Error("Session not found");
+        if (sessionData.userId) {
+          const profileRes = await fetch(`/api/user?userId=${sessionData.userId}`, {
+            credentials: "include"
+          });
+          
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            setProfile(profileData);
+          }
         }
-
-        const userId = sessionData.userId;
-
-        // Étape 2: Récupérer les données utilisateur
-        const profileRes = await fetch(`/api/user?userId=${userId}`);
-        const profileData = await profileRes.json();
-        
-        if (!profileRes.ok) {
-          throw new Error(profileData.error || "Failed to fetch profile");
-        }
-
-        setProfile(profileData);
       } catch (error) {
-        console.error("Error fetching profile:", error);
-        router.push("/login");
+        console.error("Erreur fetchProfile:", error);
       } finally {
         setLoading(false);
       }

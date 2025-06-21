@@ -33,6 +33,7 @@ const Login = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: "include", 
       });
 
       // Lecture unique du corps en texte pour debug

@@ -123,9 +123,9 @@ const Stepping = () => {
 
   const selectedCategory = category === "Other..." ? customCategory : category;
 
-  React.useEffect(() => {
+  /*React.useEffect(() => {
     if (userType) localStorage.setItem("userType", userType);
-  }, [userType]);
+  }, [userType]);*/
   
   useEffect(() => {
     setFormData(prev => ({

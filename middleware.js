@@ -1,41 +1,53 @@
-import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
+// middleware.js
+import { NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
 
 export async function middleware(req) {
-  const protectedRoutes = ['/dashboard', '/profile', '/api/user'];
-  const isProtected = protectedRoutes.some(route => 
-    req.nextUrl.pathname.startsWith(route)
-  );
+  const path = req.nextUrl.pathname;
 
-  if (!isProtected) return NextResponse.next();
-
-  const token = req.cookies.get('token')?.value;
-  
-  if (!token) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+  // 🔁 Ignore les routes API et les fichiers statiques
+  if (path.startsWith("/api") || path.includes(".") || path.startsWith("/_next")) {
+    return NextResponse.next();
   }
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const requestHeaders = new Headers(req.headers);
-    requestHeaders.set('userId', decoded.userId);
-    
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders
+  const response = NextResponse.next();
+
+  // ✅ Ajout des headers CORS
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  response.headers.set("Access-Control-Allow-Credentials", "true");
+
+  // ✅ Bloc de debug pour /dashboard et /account
+  if (path.startsWith("/dashboard") || path.startsWith("/account")) {
+    const token = req.cookies.get("token")?.value;
+
+    console.log("TOKEN MIDDLEWARE:", token); // ✅ Debug visible dans le terminal (console serveur)
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log("✅ Token valide - userId:", decoded.userId);
+        response.headers.set("X-User-Id", decoded.userId);
+      } catch (error) {
+        console.log("❌ Invalid JWT:", error.message);
+        response.cookies.delete("token");
+        return NextResponse.redirect(new URL("/login", req.url));
       }
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: 'Invalid token' }), {
-      status: 401,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    } else {
+      console.log("❌ NO TOKEN FOUND");
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
   }
+
+  return response;
 }
+
+// ✅ Appliquer le middleware uniquement sur les routes sensibles
+export const config = {
+  matcher: [
+    "/dashboard/:path*",
+    "/account/:path*",
+    "/api/user"
+  ]
+};

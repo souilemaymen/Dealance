@@ -2,10 +2,10 @@ import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema(
   {
-    fullName : { type: String },
-    email: { type: String, unique: true },
-    phoneNumber: { type: String, unique: true },
-    password: { type: String },
+    fullName : { type: String, required: true},
+    email: { type: String, unique: true , required: true},
+    phoneNumber: { type: String, unique: true , required: true},
+    password: { type: String , required: true},
 
     // Stepper fields
     userType: { type: String, enum: ['freelancer', 'client'], required: false },
@@ -13,7 +13,7 @@ const UserSchema = new mongoose.Schema(
     // freelancer fields
     category: String,
     customCategory: String,
-    professionalTitle: String, // renommé depuis "title"
+    professionalTitle: String, 
     bio: String,
     technologies: String,
     experience: String,

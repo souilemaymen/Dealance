@@ -1,59 +1,62 @@
-// app/api/auth/signup/route.js
-import { NextResponse } from 'next/server';
-import dbConnect from '@/app/api/lib/dbConnect';
-import User from '@/app/api/models/User';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import dbConnect from "@/app/api/lib/dbConnect";
+import User from "@/app/api/models/User";
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 export async function POST(req) {
   try {
-    const { fullName, email, phoneNumber, password } = await req.json();
-    console.log("Données reçues:", { fullName, email, phoneNumber }); // Log pour débogage
     await dbConnect();
+    const { fullName, email, phoneNumber, password } = await req.json();
 
-    const existingUser = await User.findOne({ email });
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await User.findOne({ $or: [{ email }, { phoneNumber }] });
     if (existingUser) {
       return NextResponse.json(
-        { message: 'User already exists' },
+        { message: "Email ou numéro de téléphone déjà utilisé" },
         { status: 400 }
       );
     }
 
+    // Hacher le mot de passe
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await User.create({
+
+    // Créer un nouvel utilisateur
+    const newUser = new User({
       fullName,
       email,
       phoneNumber,
       password: hashedPassword,
     });
 
+    await newUser.save();
+
+    // Créer le token JWT
     const token = jwt.sign(
       { userId: newUser._id },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: "1d" }
     );
-    const response = NextResponse.json({
-      user: {
-        userId: newUser._id,
-        fullName: newUser.fullName,
-        email: newUser.email,
-        phoneNumber: newUser.phoneNumber,
-      },
-    });
 
-    // Définir le cookie sécurisé
-    response.cookies.set('token', token, {
+    // Créer la réponse avec cookie HTTP-only
+    const response = NextResponse.json(
+      { message: "Inscription réussie", userId: newUser._id },
+      { status: 201 }
+    );
+
+    response.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60, 
+      sameSite: "lax",
+      maxAge: 86400, // 1 jour
       path: "/",
     });
-  return response;
+
+    return response;
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error("Erreur d'inscription:", error);
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { message: "Erreur serveur" },
       { status: 500 }
     );
   }

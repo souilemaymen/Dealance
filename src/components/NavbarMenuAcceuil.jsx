@@ -59,7 +59,7 @@ const NavbarMenuAcceuil = () => {
   const handleLogout = async () => {
     try {
       // Appeler l'endpoint de déconnexion
-      const response = await fetch('/api/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST'
       });
       
@@ -133,7 +133,7 @@ const NavbarMenuAcceuil = () => {
             </Button>
             
             <Button
-               onClick={() => userId && router.push(`/dashboard/${userId}`)}
+               onClick={() => userId && router.push("/dashboard")}
               className="!bg-white-200 !text-white-50 !font-medium"
               disabled={!userId}
             >

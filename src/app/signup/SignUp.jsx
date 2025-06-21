@@ -62,9 +62,10 @@ const SignUp = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ fullName, email , phoneNumber , password }),
+          credentials: "include",
         });
 
-        const text = await res.text(); // Lire la réponse brute
+        const text = await res.text(); 
         console.log("Réponse brute :", text);
 
         let data;
@@ -80,8 +81,6 @@ const SignUp = () => {
 
         if (res.ok) {
           console.log("sigup réussi :", data.token);
-          //localStorage.setItem("token", data.token);
-          //localStorage.setItem("userId", data.user._id);
           router.push("/signup/steps");
         } else {
           alert(data.message || "Sign up failed");

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import dbConnect from '../../../../lib/dbConnect';
-import User from '../../../../models/User';
+import dbConnect from "@/app/api/lib/dbConnect";
+import User from "@/app/api/models/User";
+
 
 // GET: Récupérer les données utilisateur
 export async function GET(request) {

@@ -28,6 +28,7 @@ const SideBar = () => {
   const [userId, setUserId] = useState(null);
   const router = useRouter();
   const [profileImage, setProfileImage] = useState(null);
+  
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768) {
@@ -37,36 +38,45 @@ const SideBar = () => {
       }
     };
     window.addEventListener("resize", handleResize);
-
     handleResize();
-
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-useEffect(() => {
-  const fetchSession = async () => {
-    try {
-      const res = await fetch("/api/auth/session");
-      const data = await res.json();
-      
-      if (res.ok && data.userId) {
-        setUserId(data.userId);
+ 
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const res = await fetch("/api/auth/session", {
+          credentials: "include"
+        });
         
-        // Récupérer les infos utilisateur
-        const userRes = await fetch(`/api/user?userId=${data.userId}`);
-        const userData = await userRes.json();
-        setUsername(userData.fullName); 
-        setProfileImage(userData.profileImage);
-      } else {
-        router.push("/login");
-      }
-    } catch (err) {
-      console.error("Error fetching session", err);
-      router.push("/login");
-    }
-  };
+        if (res.status === 401) {
+          console.log("Session non authentifiée");
+          return;
+        }
 
-  fetchSession();
-}, []);
+        const data = await res.json();
+        
+        if (res.ok && data.userId) {
+          setUserId(data.userId);
+          
+          const userRes = await fetch(`/api/user?userId=${data.userId}`, {
+            credentials: 'include'
+          });
+          
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            setUsername(userData.fullName); 
+            setProfileImage(userData.profileImage);
+          }
+        }
+      } catch (err) {
+        console.error("Erreur lors de la récupération de session:", err);
+      }
+    };
+
+    fetchSession();
+  }, []);
+
   return (
     <motion.nav
       layout
@@ -90,23 +100,12 @@ useEffect(() => {
       <TitleSection open={open} username={username} profileImage={profileImage} />
       <div className="space-y-1">
         <Option
-          Icon={User}
-          title="Account"
-          selected={selected}
-          setSelected={setSelected}
-          open={open}
-          notifs
-          delay={0.125}
-          userId={userId}
-        />
-        <Option
           Icon={Settings}
           title="Settings"
           selected={selected}
           setSelected={setSelected}
           open={open}
           delay={0.225}
-          userId={userId}
         />
         <Option
           Icon={LockKeyhole}
@@ -115,7 +114,6 @@ useEffect(() => {
           setSelected={setSelected}
           open={open}
           delay={0.325}
-          userId={userId}
         />
         <Option
           Icon={HandCoins}
@@ -124,7 +122,6 @@ useEffect(() => {
           setSelected={setSelected}
           open={open}
           delay={0.425}
-          userId={userId}
         />
         <Option
           Icon={History}
@@ -133,7 +130,6 @@ useEffect(() => {
           setSelected={setSelected}
           open={open}
           delay={0.525}
-          userId={userId}
         />
       </div>
       <ToggleClose open={open} setOpen={setOpen} />
@@ -149,27 +145,19 @@ const Option = ({
   open,
   notifs,
   delay,
-  userId
 }) => {
   const router = useRouter();
-  // redirection vers la url suivante : /dashboard/<userId>/account
- const handleClick = () => {
-    setSelected(title);
-    if (!userId) {
-    console.error("userId not found in localStorage");
-    return;
-  }
 
   const slug = title
     .toLowerCase()
     .replace(/\s&\s/g, "-")
     .replace(/\s/g, "-");
 
-  router.push(`/dashboard/${userId}/${slug}`);
+  const handleClick = () => {
+    setSelected(title);
+    router.push(`/dashboard/${slug}`);
   };
 
-
-  // fin fonction handleclick
   return (
     <motion.button
       layout
@@ -213,11 +201,17 @@ const Option = ({
 };
 
 const TitleSection = ({ open, username, profileImage }) => {
+  const router = useRouter();
+  
+  const handleClick = () => {
+    // Rediriger vers la page principale du dashboard
+    router.push('/dashboard');
+  };
   return (
-    <div className="mb-3 border-b border-slate-400 pb-3">
+    <div className="mb-3 border-b border-slate-400 pb-3" >
       <div
         className="flex cursor-pointer items-center justify-between rounded-md transition-colors
-       hover:bg-white-100"
+       hover:bg-white-100" onClick={handleClick}
       >
         <div className="flex items-center gap-2">
           <Logo profileImage={profileImage} />
@@ -240,7 +234,6 @@ const TitleSection = ({ open, username, profileImage }) => {
 };
 
 const Logo = ({ profileImage }) => {
- // Vérifier si l'image est valide
   const isValidImage = profileImage && profileImage.startsWith('data:image/');
   
   return (
