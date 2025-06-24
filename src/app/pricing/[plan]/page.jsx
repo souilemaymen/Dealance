@@ -6,9 +6,9 @@ import Footer from '@/home/Footer';
 const plans = {
   basique: {
     title: 'Basique',
-    description: 'Pour les étudiants',
-    price: '10Dt / mois',
-    features: ['1 projet', 'Support par mail', 'Accès limité']
+    description: 'Pour les Débutants',
+    price: '0Dt / mois',
+    features: ['14 jours', 'Support par mail', 'Accès limité']
   },
   pro: {
     title: 'Pro',
@@ -20,7 +20,7 @@ const plans = {
     title: 'Entreprise',
     description: 'Pour les grandes équipes',
     price: '€99 / mois',
-    features: ['Accès complet', 'Support dédié 24/7', 'Intégrations personnalisées']
+    features: ['Accès complet', 'Support customer 24/7', 'Intégrations personnalisées']
   }
 };
 

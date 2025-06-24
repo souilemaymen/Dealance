@@ -22,8 +22,6 @@ const UserSchema = new mongoose.Schema(
     linkedin: String,
     otherLink: String,
     profileImage: { type: String },
-
-    // client fields
     companyName: String,
     projectDescription: String,
     projectBudget: String,

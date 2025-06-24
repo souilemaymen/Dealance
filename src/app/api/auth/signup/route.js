@@ -1,5 +1,6 @@
 import dbConnect from "@/app/api/lib/dbConnect";
 import User from "@/app/api/models/User";
+import Subscription from "@/app/api/models/Subscription"; // Import du modèle Subscription
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -31,6 +32,14 @@ export async function POST(req) {
 
     await newUser.save();
 
+    
+    const newSubscription = new Subscription({
+      userId: newUser._id, 
+      fullName: newUser.fullName, 
+      subscriptionType: "Null", 
+    });
+    await newSubscription.save();
+
     // Créer le token JWT
     const token = jwt.sign(
       { userId: newUser._id },
@@ -40,7 +49,11 @@ export async function POST(req) {
 
     // Créer la réponse avec cookie HTTP-only
     const response = NextResponse.json(
-      { message: "Inscription réussie", userId: newUser._id },
+      { 
+        message: "Inscription réussie", 
+        userId: newUser._id,
+        subscriptionId: newSubscription._id // Optionnel: on renvoie l'ID de l'abonnement
+      },
       { status: 201 }
     );
 

@@ -25,12 +25,12 @@ const Pricing = () => {
         {/* Plan Basique */}
         <div className="bg-white-100 rounded-2xl shadow-lg p-8 hover:scale-105 transition duration-300">
           <h2 className="text-2xl font-bold mb-4">Basique</h2>
-          <p className="text-white-200 mb-6">Pour les étudiants</p>
-          <p className="text-3xl font-bold mb-6">10Dt<span className="text-base"> / mois</span></p>
+          <p className="text-white-200 mb-6">Pour les débutants</p>
+          <p className="text-3xl font-bold mb-6">0Dt<span className="text-base"> / 14 jours</span></p>
           <ul className="space-y-2 mb-6">
-            <li>✓ 1 projet</li>
-            <li>✓ Support par mail</li>
-            <li>✓ Accès limité</li>
+            <li>✓ 1 tester le plateforme</li>
+            <li>✓ contact illimité des clients</li>
+            <li>✓ Accès illimité</li>
           </ul>
           <button className="bg-white-200 text-white-50 py-2 px-4 rounded-xl font-semibold hover:bg-white-300 transition" onClick={() => router.push('/pricing/basique')} >
             Read more
@@ -40,8 +40,8 @@ const Pricing = () => {
         {/* Plan Pro */}
         <div className="bg-white-100 rounded-2xl shadow-xl p-8 border-4 border-white-200 hover:scale-105 transition duration-300" onClick={() => router.push('/pricing/pro')} >
           <h2 className="text-2xl font-bold mb-4">Pro</h2>
-          <p className="text-white-200 mb-6">Pour les professionnels</p>
-          <p className="text-3xl font-bold mb-6">€29<span className="text-base"> / mois</span></p>
+          <p className="text-white-200 mb-6">Pour les étudiants</p>
+          <p className="text-3xl font-bold mb-6">20Dt<span className="text-base"> / mois</span></p>
           <ul className="space-y-2 mb-6">
             <li>✓ Projets illimités</li>
             <li>✓ Support prioritaire</li>
@@ -54,9 +54,9 @@ const Pricing = () => {
 
         {/* Plan Entreprise */}
         <div className="bg-white-100 rounded-2xl shadow-lg p-8 hover:scale-105 transition duration-300">
-          <h2 className="text-2xl font-bold mb-4">Entreprise</h2>
+          <h2 className="text-2xl font-bold mb-4">Elite</h2>
           <p className="text-white-200 mb-6">Pour les grandes équipes</p>
-          <p className="text-3xl font-bold mb-6">€99<span className="text-base"> / mois</span></p>
+          <p className="text-3xl font-bold mb-6">40Dt<span className="text-base"> / mois</span></p>
           <ul className="space-y-2 mb-6">
             <li>✓ Accès complet</li>
             <li>✓ Support dédié 24/7</li>

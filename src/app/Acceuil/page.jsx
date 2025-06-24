@@ -6,15 +6,12 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
-
 const Acceuil = () => {
   const router = useRouter();
   const { data: session } = useSession();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
-
-  // Récupérer l'utilisateur courant
   useEffect(() => {
     if (session?.user?.id) {
       const fetchCurrentUser = async () => {
@@ -100,6 +97,7 @@ const Acceuil = () => {
   };
 
   return (
+        
         <div className="flex flex-col min-h-screen">
           {/* Barre de navigation */}
           <NavbarMenuAcceuil />

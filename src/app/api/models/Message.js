@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const messageSchema = new mongoose.Schema({
+const MessageSchema = new mongoose.Schema({
   conversation: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Conversation',
@@ -15,11 +15,12 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  read: {
-    type: Boolean,
-    default: false
-  }
+  readBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
 }, { timestamps: true });
 
-export default mongoose.models.Message || 
-       mongoose.model('Message', messageSchema);
+const Message = mongoose.models?.Message || mongoose.model("Message", MessageSchema);
+
+export default Message;

@@ -1,20 +1,27 @@
-import { NextResponse } from 'next/server';
-import Conversation from '../models/Conversation';
-import User from '../models/User';
-import { connectDB } from '../lib/dbConnect';
+import dbConnect from '@/lib/dbConnect';
+import Conversation from '@/models/Conversation';
+import User from '@/models/User';
 
-export async function GET(req) {
-  await connectDB();
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId');
-
+export const GET = async (request) => {
+  await dbConnect();
+  
   try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'User ID required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const conversations = await Conversation.find({
       participants: userId
     })
     .populate({
       path: 'participants',
-      select: 'name avatar'
+      select: 'fullName profileImage'
     })
     .populate({
       path: 'lastMessage',
@@ -22,38 +29,69 @@ export async function GET(req) {
     })
     .sort({ updatedAt: -1 });
 
-    return NextResponse.json(conversations);
+    return new Response(JSON.stringify(conversations), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Erreur serveur' }, 
-      { status: 500 }
-    );
+    console.error("Error fetching conversations:", error);
+    return new Response(JSON.stringify({ error: 'Server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
-}
+};
 
-export async function POST(req) {
-  await connectDB();
-  const { participants } = await req.json();
-
+export const POST = async (request) => {
+  await dbConnect();
+  
   try {
-    const existingConv = await Conversation.findOne({
-      participants: { $all: participants, $size: participants.length }
-    })
-    .populate('participants', 'name avatar');
-
-    if (existingConv) {
-      return NextResponse.json(existingConv);
+    const { userId, participantId } = await request.json();
+    
+    if (!userId || !participantId) {
+      return new Response(JSON.stringify({ error: 'User ID and Participant ID required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    const newConversation = new Conversation({ participants });
-    await newConversation.save();
-    await newConversation.populate('participants', 'name avatar');
+    // Vérifier si une conversation existe déjà
+    const existingConversation = await Conversation.findOne({
+      participants: { $all: [userId, participantId] }
+    });
 
-    return NextResponse.json(newConversation, { status: 201 });
+    if (existingConversation) {
+      return new Response(JSON.stringify(existingConversation), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Créer une nouvelle conversation
+    const newConversation = new Conversation({
+      participants: [userId, participantId]
+    });
+
+    await newConversation.save();
+    
+    // Remplir les données des participants
+    const populated = await Conversation.findById(newConversation._id)
+      .populate({
+        path: 'participants',
+        select: 'fullName profileImage'
+      });
+
+    return new Response(JSON.stringify(populated), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Erreur création conversation' }, 
-      { status: 500 }
-    );
+    console.error("Error creating conversation:", error);
+    return new Response(JSON.stringify({ error: 'Server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
-}
+};

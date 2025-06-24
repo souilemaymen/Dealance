@@ -25,6 +25,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="preload" href="/logo2.png" as="image" type="image/png" />
+        <title>Dealance</title>
       </head>
       <body className={`${dosis.variable} ${geistMono.variable} antialiased`}>
         <SessionProvider>

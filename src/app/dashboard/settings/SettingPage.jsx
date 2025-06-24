@@ -6,6 +6,11 @@ import { Check, X, Eye, EyeOff, Bell, BellOff, Mail } from "lucide-react";
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("account");
   const [showPassword, setShowPassword] = useState(false);
+  const [passwords, setPasswords] = useState({
+    current: "",
+    new: "",
+    confirm: ""
+  });
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -26,7 +31,7 @@ const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
 
   // Récupération des données utilisateur
-  useEffect(() => {
+   useEffect(() => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
@@ -57,6 +62,48 @@ const SettingsPage = () => {
     fetchUserData();
   }, []);
 
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswords(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (passwords.new !== passwords.confirm) {
+      alert("Les nouveaux mots de passe ne correspondent pas!");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/user/change-password", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          currentPassword: passwords.current,
+          newPassword: passwords.new
+        })
+      });
+
+      if (response.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+        // Réinitialiser les champs
+        setPasswords({ current: "", new: "", confirm: "" });
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || "Erreur lors de la mise à jour du mot de passe");
+      }
+    } catch (error) {
+      console.error("Erreur réseau:", error);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     
@@ -78,6 +125,9 @@ const SettingsPage = () => {
     
     setSaved(false);
   };
+const togglePasswordVisibility = () => {
+  setShowPassword(!showPassword);
+};
 
 const handleSubmit = async (e) => {
     e.preventDefault();
@@ -276,68 +326,85 @@ if (loading) {
     </form>
   )}
         {/* Sécurité */}
-        {activeTab === "security" && (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-white-100 dark:bg-white-200 rounded-xl p-6 border border-white-50 dark:border-white-300">
-              <h2 className="font-dosis text-xl font-bold mb-6">
-                Sécurité du compte
-              </h2>
-              
-              <div className="mb-6">
-                <label className="block font-geist-mono text-sm mb-2">
+            {activeTab === "security" && (
+        <form onSubmit={handlePasswordSubmit} className="space-y-6">
+          <div className="bg-white-100 dark:bg-white-200 rounded-xl p-6 border border-white-50 dark:border-white-300">
+            <h2 className="font-dosis text-xl font-bold mb-6">
+              Sécurité du compte
+            </h2>
+            
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <label className="block font-geist-mono text-sm">
                   Mot de passe actuel
                 </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="currentPassword"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-lg bg-white-50 dark:bg-white-100 border border-white-100 dark:border-white-300 focus:outline-none focus:ring-1 focus:ring-white-200 pr-12"
-                  />
-                  <button
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white-200"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block font-geist-mono text-sm mb-2">
-                    Nouveau mot de passe
-                  </label>
-                  <input
-                    type="password"
-                    name="newPassword"
-                    className="w-full px-4 py-3 rounded-lg bg-white-50 dark:bg-white-100 border border-white-100 dark:border-white-300 focus:outline-none focus:ring-1 focus:ring-white-200"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block font-geist-mono text-sm mb-2">
-                    Confirmer le nouveau mot de passe
-                  </label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    className="w-full px-4 py-3 rounded-lg bg-white-50 dark:bg-white-100 border border-white-100 dark:border-white-300 focus:outline-none focus:ring-1 focus:ring-white-200"
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-8 flex justify-end">
-                <button
-                  type="submit"
-                  className="bg-white-200 text-white-50 px-6 py-3 rounded-full font-dosis font-bold hover:bg-opacity-90 transition"
+                {/* Ajout du bouton "Mot de passe oublié" ici */}
+                <button 
+                  type="button"
+                  onClick={() => window.location.href = "/forgot-password"}
+                  className="text-blue-500 hover:text-blue-700 font-geist-mono text-sm"
                 >
-                  Mettre à jour le mot de passe
+                  Mot de passe oublié ?
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="current"
+                  value={passwords.current}
+                  onChange={handlePasswordChange}
+                  className="w-full px-4 py-3 rounded-lg bg-white-50 dark:bg-white-100 border border-white-100 dark:border-white-300 focus:outline-none focus:ring-1 focus:ring-white-200 pr-12"
+                  placeholder="Entrez votre mot de passe actuel"
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white-200"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label className="block font-geist-mono text-sm mb-2">
+                Nouveau mot de passe
+              </label>
+              <input
+                type="password"
+                name="new"
+                value={passwords.new}
+                onChange={handlePasswordChange}
+                className="w-full px-4 py-3 rounded-lg bg-white-50 dark:bg-white-100 border border-white-100 dark:border-white-300 focus:outline-none focus:ring-1 focus:ring-white-200"
+                placeholder="Nouveau mot de passe"
+              />
+            </div>
+            
+            <div>
+              <label className="block font-geist-mono text-sm mb-2">
+                Confirmer le nouveau mot de passe
+              </label>
+              <input
+                type="password"
+                name="confirm"
+                value={passwords.confirm}
+                onChange={handlePasswordChange}
+                className="w-full px-4 py-3 rounded-lg bg-white-50 dark:bg-white-100 border border-white-100 dark:border-white-300 focus:outline-none focus:ring-1 focus:ring-white-200"
+                placeholder="Confirmer le nouveau mot de passe"
+              />
+            </div>
+          </div>
+          
+          <div className="mt-8 flex justify-end">
+            <button
+              type="submit"
+              className="bg-white-200 text-white-50 px-6 py-3 rounded-full font-dosis font-bold hover:bg-opacity-90 transition"
+            >
+              Mettre à jour le mot de passe
+            </button>
+          </div>
+        </div>
             
             <div className="bg-white-100 dark:bg-white-200 rounded-xl p-6 border border-white-50 dark:border-white-300">
               <h2 className="font-dosis text-xl font-bold mb-6">

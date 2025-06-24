@@ -1,47 +1,58 @@
-// src/app/messages/page.jsx
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Send, MoreVertical, ArrowLeft, Link, Home } from 'lucide-react';
+import { Search, Send, ArrowLeft, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import io from 'socket.io-client';
+
 const MessagesPage = () => {
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const socketRef = useRef(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // code use Effect 
-// Vérifier l'authentification
+  // Vérifier l'authentification
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
     }
   }, [status, router]);
 
-  // Initialiser Socket.IO et charger l'utilisateur
+  // Charger l'utilisateur et les conversations
   useEffect(() => {
     if (status !== 'authenticated') return;
 
-    // Charger l'utilisateur courant
-    const fetchCurrentUser = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`/api/users?userId=${session.user.id}`);
-        if (!res.ok) throw new Error('Erreur de chargement utilisateur');
-        
-        const user = await res.json();
+        // Charger l'utilisateur courant
+        const userRes = await fetch(`/api/users?userId=${session.user.userId}`);
+        if (!userRes.ok) throw new Error('Erreur de chargement utilisateur');
+        const user = await userRes.json();
         setCurrentUser(user);
+
+        // Charger les conversations
+        const convRes = await fetch(`/api/conversations?userId=${session.user.userId}`);
+        if (!convRes.ok) throw new Error('Erreur de chargement des conversations');
+        const convData = await convRes.json();
+        setConversations(convData);
       } catch (error) {
-        console.error('Erreur chargement utilisateur:', error);
+        console.error('Erreur:', error);
       }
     };
 
-    fetchCurrentUser();
+    fetchData();
+  }, [session, status]);
 
-    // Initialiser Socket.IO
+  // Initialiser Socket.IO
+  useEffect(() => {
+    if (!currentUser) return;
+
     socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
       path: '/api/socket',
       reconnection: true,
@@ -50,126 +61,131 @@ const MessagesPage = () => {
     });
 
     // Initialiser le serveur Socket.IO
-    fetch('/api/socket?init=true');
+    fetch('/api/socket');
+
+    // Rejoindre les conversations
+    const conversationIds = conversations.map(c => c._id);
+    socketRef.current.emit('joinConversations', conversationIds);
+
+    // Écouter les nouveaux messages
+    socketRef.current.on('newMessage', (message) => {
+      if (message.conversation === activeConversation?._id) {
+        setMessages(prev => [...prev, message]);
+      }
+      
+      // Mettre à jour la dernière conversation
+      setConversations(prev => prev.map(conv => 
+        conv._id === message.conversation ? {
+          ...conv,
+          lastMessage: message.text,
+          lastMessageAt: message.createdAt,
+          unreadCount: {
+            ...conv.unreadCount,
+            [currentUser._id]: conv.unreadCount[currentUser._id] || 0,
+            [message.sender._id]: (conv.unreadCount[message.sender._id] || 0) + 1
+          }
+        } : conv
+      ));
+    });
+
+    // Marquer les messages comme lus
+    socketRef.current.on('messagesRead', ({ conversationId, userId }) => {
+      if (conversationId === activeConversation?._id) {
+        setMessages(prev => prev.map(msg => 
+          msg.sender._id !== userId && !msg.readBy.includes(userId) 
+            ? { ...msg, readBy: [...msg.readBy, userId] } 
+            : msg
+        ));
+      }
+    });
 
     return () => {
-      if (socketRef.current) socketRef.current.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     };
-  }, [session, status]); // Ajout de status comme dépendance
+  }, [currentUser, conversations, activeConversation]);
 
-  // end code useffect
-// Données simulées pour les conversations
-  const mockConversations = [
-    {
-      id: 1,
-      name: "Alex Dupont",
-      lastMessage: "Salut, comment va le projet?",
-      time: "10:30",
-      unread: 2,
-      avatar: "/avatar1.png"
-    },
-    {
-      id: 2,
-      name: "Marie Curie",
-      lastMessage: "J'ai envoyé les documents",
-      time: "09:15",
-      unread: 0,
-      avatar: "/avatar2.png"
-    },
-    {
-      id: 3,
-      name: "Thomas Martin",
-      lastMessage: "On se voit demain?",
-      time: "Hier",
-      unread: 5,
-      avatar: "/avatar3.png"
-    },
-    {
-      id: 4,
-      name: "Sophie Bernard",
-      lastMessage: "Merci pour ton aide!",
-      time: "Hier",
-      unread: 0,
-      avatar: "/avatar4.png"
-    },
-    {
-      id: 5,
-      name: "Équipe Marketing",
-      lastMessage: "Réunion reportée à 15h",
-      time: "12/05",
-      unread: 0,
-      avatar: "/group-avatar.png"
-    }
-  ];
-
-  // Données simulées pour les messages
-  const mockMessages = {
-    1: [
-      { id: 1, text: "Salut Alex!", sender: "me", time: "10:25" },
-      { id: 2, text: "Salut, comment va le projet?", sender: "them", time: "10:30" },
-      { id: 3, text: "Ça avance bien, je te montre ça demain?", sender: "me", time: "10:32" },
-      { id: 4, text: "Parfait, à demain!", sender: "them", time: "10:35" }
-    ],
-    2: [
-      { id: 1, text: "Bonjour Marie, j'ai besoin de ton expertise", sender: "me", time: "09:00" },
-      { id: 2, text: "J'ai envoyé les documents", sender: "them", time: "09:15" },
-      { id: 3, text: "Merci, je les regarde tout de suite!", sender: "me", time: "09:20" }
-    ],
-    3: [
-      { id: 1, text: "Salut Thomas, tu es libre demain?", sender: "me", time: "18:30" },
-      { id: 2, text: "On se voit demain?", sender: "them", time: "19:45" },
-      { id: 3, text: "Oui, vers 14h ça te va?", sender: "me", time: "20:10" }
-    ],
-    4: [
-      { id: 1, text: "Merci pour ton aide sur le dossier!", sender: "them", time: "16:20" },
-      { id: 2, text: "Avec plaisir, content d'avoir pu aider!", sender: "me", time: "16:35" }
-    ],
-    5: [
-      { id: 1, text: "Chers tous, la réunion de 14h est reportée à 15h", sender: "them", time: "12:05" },
-      { id: 2, text: "D'accord, merci pour l'info", sender: "me", time: "12:10" }
-    ]
-  };
-
-  useEffect(() => {
-    // Simuler le chargement des conversations
-    setConversations(mockConversations);
-  }, []);
-
-  const handleSelectConversation = (conversation) => {
+  // Charger les messages d'une conversation
+  const handleSelectConversation = async (conversation) => {
     setActiveConversation(conversation);
-    setMessages(mockMessages[conversation.id] || []);
+    
+    try {
+      const res = await fetch(`/api/messages?conversationId=${conversation._id}`);
+      if (!res.ok) throw new Error('Erreur de chargement des messages');
+      const messagesData = await res.json();
+      setMessages(messagesData);
+      
+      // Marquer les messages comme lus
+      if (currentUser) {
+        await fetch('/api/messages/read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: conversation._id,
+            userId: currentUser._id
+          })
+        });
+        
+        // Émettre l'événement Socket.IO
+        if (socketRef.current) {
+          socketRef.current.emit('markAsRead', {
+            conversationId: conversation._id,
+            userId: currentUser._id
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+    }
   };
 
-  const handleSendMessage = () => {
-    if (newMessage.trim() === '') return;
+  // Envoyer un message
+  const handleSendMessage = async () => {
+    if (newMessage.trim() === '' || !activeConversation || !currentUser) return;
     
-    const newMsg = {
-      id: messages.length + 1,
-      text: newMessage,
-      sender: "me",
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    
-    setMessages([...messages, newMsg]);
-    setNewMessage('');
-    
-    // Simuler une réponse
-    setTimeout(() => {
-      const reply = {
-        id: messages.length + 2,
-        text: "Merci pour votre message, je vous réponds bientôt!",
-        sender: "them",
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, reply]);
-    }, 2000);
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: activeConversation._id,
+          senderId: currentUser._id,
+          text: newMessage
+        })
+      });
+      
+      if (!response.ok) throw new Error('Erreur lors de l\'envoi du message');
+      
+      const sentMessage = await response.json();
+      setNewMessage('');
+      
+      // Émettre l'événement Socket.IO
+      if (socketRef.current) {
+        socketRef.current.emit('sendMessage', sentMessage);
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+    }
   };
 
-  const filteredConversations = conversations.filter(conv => 
-    conv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filtrer les conversations
+const filteredConversations = conversations.filter(conv => {
+  // Vérifier si participants existe et est un tableau
+  if (!conv.participants || !Array.isArray(conv.participants)) {
+    return false; // Exclure les conversations invalides
+  }
+
+  const participant = conv.participants.find(p => p._id !== currentUser?._id);
+  const participantName = participant?.fullName || '';
+  const lastMessage = conv.lastMessage || '';
+
+  return (
+    participantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const router = useRouter();
+});
+  
   return (
     <div className="flex flex-col h-screen bg-white-50 dark:bg-white-300 text-white-300 dark:text-white-100">
       {/* En-tête */}

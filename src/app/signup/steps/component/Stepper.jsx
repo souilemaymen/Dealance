@@ -123,12 +123,12 @@ export default function Stepper({
                   {backButtonText}
                 </button>
               )}
-              
+
               {/* Modification ici - Bouton "Complete" pour la dernière étape */}
-              {isLastStep ? (
+              {isLastStep && currentStep !== 1 ? (
                 <button
                   onClick={onFinalStepCompleted}
-                  className="duration-350 flex items-center justify-center rounded-full bg-green-600 py-1.5 px-3.5 font-medium tracking-tight text-white-50 transition hover:bg-green-700 active:bg-green-800"
+                  className="duration-350 flex items-center justify-center rounded-full bg-white-300 py-1.5 px-3.5 font-medium tracking-tight text-white-100 transition hover:bg-white-100 hover:text-white-300 active:bg-white-100"
                   {...completeButtonProps}
                 >
                   {completeButtonText}

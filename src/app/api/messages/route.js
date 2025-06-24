@@ -1,60 +1,91 @@
-import { NextResponse } from 'next/server';
-import Message from '../models/Message';
-import Conversation from '../models/Conversation';
-import { getIO } from '../lib/socketManager';
-import { connectDB } from '../lib/dbConnect';
+import dbConnect from '@/lib/dbConnect';
+import Message from '@/models/Message';
+import Conversation from '@/models/Conversation';
 
-export async function GET(req) {
-  await connectDB();
-  const { searchParams } = new URL(req.url);
-  const conversationId = searchParams.get('conversationId');
-  const page = parseInt(searchParams.get('page') || 1);
-  const limit = 20;
-  const skip = (page - 1) * limit;
-
+export const GET = async (request) => {
+  await dbConnect();
+  
   try {
+    const { searchParams } = new URL(request.url);
+    const conversationId = searchParams.get('conversationId');
+    
+    if (!conversationId) {
+      return new Response(JSON.stringify({ error: 'Conversation ID required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const messages = await Message.find({ conversation: conversationId })
-      .populate('sender', 'name avatar')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+      .populate('sender', 'fullName profileImage')
+      .sort({ createdAt: 1 });
 
-    return NextResponse.json(messages.reverse());
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Erreur récupération messages' }, 
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(req) {
-  await connectDB();
-  const { conversationId, sender, text } = await req.json();
-
-  try {
-    const newMessage = new Message({ 
-      conversation: conversationId, 
-      sender, 
-      text 
+    return new Response(JSON.stringify(messages), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
     });
     
-    await newMessage.save();
-    await newMessage.populate('sender', 'name avatar');
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    return new Response(JSON.stringify({ error: 'Server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
 
-    await Conversation.findByIdAndUpdate(conversationId, {
-      lastMessage: newMessage._id,
-      updatedAt: new Date()
+export const POST = async (request) => {
+  await dbConnect();
+  
+  try {
+    const { conversationId, senderId, text } = await request.json();
+    
+    if (!conversationId || !senderId || !text) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Créer un nouveau message
+    const newMessage = new Message({
+      conversation: conversationId,
+      sender: senderId,
+      text
     });
 
-    const io = getIO();
-    io.to(`conv_${conversationId}`).emit('new-message', newMessage);
+    await newMessage.save();
+    
+    // Mettre à jour la conversation
+    await Conversation.findByIdAndUpdate(conversationId, {
+      lastMessage: newMessage._id,
+      lastMessageAt: newMessage.createdAt,
+      $inc: { 
+        [`unreadCount.${senderId}`]: 0,
+        // Incrémenter le compteur pour tous les autres participants
+        ...Object.fromEntries(
+          (await Conversation.findById(conversationId))
+            .participants
+            .filter(id => id.toString() !== senderId)
+            .map(id => [`unreadCount.${id}`, 1])
+        )
+      }
+    });
 
-    return NextResponse.json(newMessage, { status: 201 });
+    // Remplir les données de l'expéditeur
+    const populated = await Message.findById(newMessage._id)
+      .populate('sender', 'fullName profileImage');
+
+    return new Response(JSON.stringify(populated), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Erreur envoi message' }, 
-      { status: 500 }
-    );
+    console.error("Error sending message:", error);
+    return new Response(JSON.stringify({ error: 'Server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
-}
+};
