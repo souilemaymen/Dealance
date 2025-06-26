@@ -10,6 +10,8 @@ const PublicationsPage = () => {
     const [showModal, setShowModal] = useState(false);
     const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
     const [showContactSubscriptionModal, setShowContactSubscriptionModal] = useState(false);
+    const [showContactModal, setShowContactModal] = useState(false);
+    const [selectedPublication, setSelectedPublication] = useState(null);
     const [publications, setPublications] = useState([]);
     const [newPublication, setNewPublication] = useState({
         content: '',
@@ -19,6 +21,9 @@ const PublicationsPage = () => {
         mediaFile: null,
         budget: ''
     });
+    const [contactMessage, setContactMessage] = useState('');
+    const [isSendingMessage, setIsSendingMessage] = useState(false);
+    const [messageSent, setMessageSent] = useState(false);
 
     useEffect(() => {
         const fetchPublications = async () => {
@@ -59,6 +64,11 @@ const PublicationsPage = () => {
 
     const closeSubscriptionModal = () => setShowSubscriptionModal(false);
     const closeContactSubscriptionModal = () => setShowContactSubscriptionModal(false);
+    const closeContactModal = () => {
+        setShowContactModal(false);
+        setContactMessage('');
+        setMessageSent(false);
+    };
     
     const goToSubscriptionPage = () => {
         router.push('/abonnement');
@@ -66,13 +76,90 @@ const PublicationsPage = () => {
         closeContactSubscriptionModal();
     };
 
-    const handleContact = () => {
-        if (!session?.user?.hasSubscription) {
-            setShowContactSubscriptionModal(true);
-        } else {
-            // Ici vous pouvez implémenter la logique de contact
-            // Par exemple : ouvrir une messagerie, afficher les coordonnées, etc.
-            alert("Fonctionnalité de contact pour abonnés");
+const checkUserSubscription = async (userId) => {
+  if (!userId) {
+    console.error("ID utilisateur non fourni");
+    return false;
+  }
+  
+  try {
+    const response = await fetch('/api/subscription/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Erreur serveur: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.hasValidSubscription;
+  } catch (error) {
+    console.error('Error checking subscription:', error);
+    return false;
+  }
+};
+
+const handleContact = async (publication) => {
+  setSelectedPublication(publication);
+  
+  // Vérifiez si la session est chargée
+  if (session === null) {
+    console.log("Session en cours de chargement...");
+    return;
+  }
+  
+  // Vérifiez si l'utilisateur est connecté
+  if (!session) {
+    alert("Veuillez vous connecter pour contacter un professionnel");
+    return;
+  }
+
+  // Utilisez le bon champ d'ID selon votre configuration NextAuth
+  const userId = session.userId ;
+  
+  if (!userId) {
+    console.error("ID utilisateur introuvable dans la session:", session);
+    alert("Erreur d'identification. Veuillez vous reconnecter.");
+    return;
+  }
+
+  try {
+    const hasValidSubscription = await checkUserSubscription(userId);
+    
+    if (hasValidSubscription) {
+      setShowContactModal(true);
+    } else {
+      setShowContactSubscriptionModal(true);
+    }
+  } catch (error) {
+    console.error("Erreur lors de la vérification de l'abonnement:", error);
+    setShowContactSubscriptionModal(true);
+  }
+};
+
+    const sendContactMessage = async (e) => {
+        e.preventDefault();
+        setIsSendingMessage(true);
+        
+        try {
+            // Simuler l'envoi du message
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            setMessageSent(true);
+            
+            // Réinitialiser après succès
+            setTimeout(() => {
+                setMessageSent(false);
+                setContactMessage('');
+                closeContactModal();
+            }, 2000);
+        } catch (error) {
+            console.error("Erreur lors de l'envoi du message:", error);
+        } finally {
+            setIsSendingMessage(false);
         }
     };
 
@@ -151,6 +238,29 @@ const PublicationsPage = () => {
             });
         }
     };
+    const handleSubscriptionSelect = async (type) => {
+  try {
+    const response = await fetch('/api/subscription/demandes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ subscriptionType: type })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Demande créée:", data.demandeId);
+      // Rediriger ou afficher un message de succès
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Erreur lors de la création");
+    }
+  } catch (error) {
+    console.error("Erreur:", error);
+    alert(error.message);
+  }
+};
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -263,7 +373,7 @@ const PublicationsPage = () => {
 
                                     <div className="flex justify-end mt-4">
                                         <button 
-                                            onClick={handleContact}
+                                            onClick={() => handleContact(pub)}
                                             className="font-geist-mono px-4 py-2 bg-green-500 hover:bg-green-600 text-white-50 rounded-lg transition-colors"
                                         >
                                             Contacter
@@ -568,6 +678,85 @@ const PublicationsPage = () => {
                                     S'abonner
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modale de contact */}
+            {showContactModal && selectedPublication && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+                    <div className="bg-white-50 dark:bg-white-300 rounded-2xl shadow-2xl w-full max-w-md">
+                        <div className="p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-2xl font-dosis font-bold text-white-300 dark:text-white-50">
+                                    Contacter {selectedPublication.userId?.fullName || 'le professionnel'}
+                                </h2>
+                                <button 
+                                    onClick={closeContactModal}
+                                    className="p-2 rounded-full hover:bg-white-100 dark:hover:bg-white-200 transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white-200 dark:text-white-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            {messageSent ? (
+                                <div className="text-center py-8">
+                                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-xl font-dosis font-bold text-green-500 mb-2">
+                                        Message envoyé!
+                                    </h3>
+                                    <p className="font-geist-mono text-white-200 dark:text-white-100">
+                                        Votre message a été envoyé avec succès.
+                                    </p>
+                                </div>
+                            ) : (
+                                <form onSubmit={sendContactMessage}>
+                                    <div className="mb-4">
+                                        <label className="block font-dosis font-bold text-white-300 dark:text-white-50 mb-2">
+                                            Votre message
+                                        </label>
+                                        <textarea
+                                            value={contactMessage}
+                                            onChange={(e) => setContactMessage(e.target.value)}
+                                            placeholder={`Bonjour ${selectedPublication.userId?.fullName || ''}, je suis intéressé par votre publication...`}
+                                            className="w-full bg-white-100 dark:bg-white-200 rounded-lg p-4 font-geist-mono text-white-300 dark:text-white-100 placeholder-white-200 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[150px]"
+                                            required
+                                        ></textarea>
+                                    </div>
+                                    
+                                    <div className="flex justify-end space-x-3">
+                                        <button 
+                                            type="button"
+                                            onClick={closeContactModal}
+                                            className="font-geist-mono px-6 py-2 bg-white-100 dark:bg-white-200 text-white-300 dark:text-white-50 rounded-lg hover:bg-white-200 dark:hover:bg-white-300 transition-colors"
+                                        >
+                                            Annuler
+                                        </button>
+                                        <button 
+                                            type="submit"
+                                            disabled={isSendingMessage}
+                                            className="font-geist-mono px-6 py-2 bg-purple-500 text-white-50 rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-75"
+                                        >
+                                            {isSendingMessage ? (
+                                                <span className="flex items-center">
+                                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Envoi en cours...
+                                                </span>
+                                            ) : "Envoyer"}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
                         </div>
                     </div>
                 </div>

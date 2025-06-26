@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import NavbarMenuAcceuil from '@/components/NavbarMenuAcceuil';
-import { useSession } from 'next-auth/react';
+import { getSession,useSession } from 'next-auth/react';
 
 const SubscriptionPage = () => {
   const { data: session } = useSession();
@@ -54,6 +54,45 @@ const SubscriptionPage = () => {
       popular: false
     }
   ];
+const handleSubscriptionSelect = async (subscriptionType) => {
+  try {
+    // Récupérer la session via votre propre API
+    const sessionRes = await fetch('/api/auth/session', {
+      credentials: 'include' // Essentiel pour envoyer les cookies
+    });
+    const sessionData = await sessionRes.json();
+    
+    if (!sessionRes.ok || !sessionData.userId) {
+      throw new Error("Utilisateur non connecté");
+    }
+
+    const userId = sessionData.userId;
+
+    // Envoyer la requête avec l'ID utilisateur
+    const response = await fetch('/api/subscription/demandes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId,
+        subscriptionType
+      }),
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Demande créée:", data.demandeId);
+      // Rediriger ou afficher un message de succès
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Erreur lors de la création");
+    }
+  } catch (error) {
+    console.error("Erreur:", error);
+    alert(error.message);
+  }
+};
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -82,7 +121,7 @@ const SubscriptionPage = () => {
                 </div>
               ) : (
                 <div className="bg-white-50 dark:bg-white-300 rounded-xl p-1 inline-flex">
-                  <button className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white-50 font-dosis font-bold rounded-lg">
+                  <button className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white-50 font-dosis font-bold rounded-lg" >
                     Abonnez-vous maintenant
                   </button>
                 </div>
@@ -151,7 +190,8 @@ const SubscriptionPage = () => {
                     ${plan.popular 
                       ? 'bg-white-50 text-purple-600 hover:bg-white-100' 
                       : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white-50 hover:from-purple-600 hover:to-indigo-700'
-                    }`}
+                    }`} 
+                    onClick={() => handleSubscriptionSelect(plan.name)}
                 >
                   {plan.buttonText}
                 </button>

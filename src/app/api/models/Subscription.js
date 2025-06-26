@@ -11,6 +11,10 @@ const subscriptionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  phoneNumber : {
+    type : String, 
+    required : true
+  },
   subscriptionType: {
     type: String,
     enum: ["Null", "Basique", "Pro", "Elite"], // Valeurs autorisées

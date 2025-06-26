@@ -48,14 +48,15 @@ export async function GET(req) {
     console.log("User found:", {
       id: user._id,
       name: user.fullName,
-      email: user.email
+      email: user.email,
     });
 
     return NextResponse.json({ 
       userId: user._id,
       fullName: user.fullName,
       profileImage: user.profileImage,
-      email: user.email
+      email: user.email,
+      token
     }, { status: 200 });
     
   } catch (error) {
