@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken";
 export async function POST(req) {
   try {
     await dbConnect();
-    const { fullName, email, phoneNumber, password } = await req.json();
+    const { fullName, email, phoneNumber, password ,userType } = await req.json();
 
     // Vérifier si l'utilisateur existe déjà
     const existingUser = await User.findOne({ $or: [{ email }, { phoneNumber }] });
@@ -27,6 +27,7 @@ export async function POST(req) {
       fullName,
       email,
       phoneNumber,
+      userType,
       password: hashedPassword,
     });
 
@@ -42,7 +43,7 @@ export async function POST(req) {
 
     // Créer le token JWT
     const token = jwt.sign(
-      { userId: newUser._id },
+      { userId: newUser._id , userType :newUser.userType },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );

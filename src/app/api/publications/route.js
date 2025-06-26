@@ -5,8 +5,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import jwt from 'jsonwebtoken';
 import mongoose from "mongoose";
-export const dynamic = 'force-dynamic';
-
+import User from "@/app/api/models/User";
 // Fonction GET pour récupérer les publications
 export async function GET() {
   await dbConnect();
@@ -63,9 +62,16 @@ export async function POST(request) {
     }
 
     //const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
     const userId = decoded.userId;
-    const userType = decoded.userType || 'freelancer';
-
+    const userType = decoded.userType;
+    const user = await User.findById(userId);
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Utilisateur non trouvé' },
+        { status: 404 }
+      );
+    }
     const formData = await request.formData();
     
     const content = formData.get('content');
@@ -90,7 +96,7 @@ export async function POST(request) {
       budget,
       media: mediaPath,
       userId,
-      userType,
+      userType : user.userType,
       fullName: decoded.fullName 
     });
 

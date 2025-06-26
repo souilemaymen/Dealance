@@ -101,7 +101,7 @@ const NavbarMenuAcceuil = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="cursor-pointer flex items-center gap-3 group"
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/Acceuil")}
             >
               <div className="relative w-12 h-12 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-700 p-1.5 shadow-lg transform transition-transform duration-300 group-hover:rotate-3">
                 <div className="bg-white w-full h-full rounded flex items-center justify-center">
