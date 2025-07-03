@@ -38,6 +38,7 @@ export async function POST(req) {
       userId: newUser._id, 
       fullName: newUser.fullName, 
       subscriptionType: "Null", 
+      phoneNumber: newUser.phoneNumber,
     });
     await newSubscription.save();
 

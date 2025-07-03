@@ -7,8 +7,11 @@ import mongoose from "mongoose"; // Import mongoose pour valider les ObjectId
 // GET: Récupérer les infos utilisateur
 export async function GET(req) {
   try {
-    await dbConnect();
+    // Établir la connexion
+    const connection = await dbConnect();
     
+    // Récupérer l'instance de base de données
+    const db = mongoose.connection.db;
     // Récupérer le token
     const token = req.cookies.get("token")?.value;
     if (!token) {
@@ -34,7 +37,7 @@ export async function GET(req) {
     
     const userId = decoded.userId;
     
-    // Validation de l'ID utilisateur
+    // Validation de l'ID 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return NextResponse.json(
         { message: "Format d'ID utilisateur invalide" },
@@ -50,8 +53,18 @@ export async function GET(req) {
         { status: 404 }
       );
     }
+      const userObject = user.toObject();
+
+    // Récupérer l'abonnement de l'utilisateur
+    const subscription = await db.collection('subscriptions').findOne(
+      { userId: new mongoose.Types.ObjectId(userId) },
+      { sort: { createdAt: -1 } } // Prendre le plus récent
+    );
+
+    // Ajouter le type d'abonnement à l'objet utilisateur
+    userObject.subscriptionType = subscription ? subscription.subscriptionType : "Null";
     
-    return NextResponse.json(user, { status: 200 });
+    return NextResponse.json(userObject, { status: 200 });
   } catch (error) {
     console.error("Erreur GET user:", error);
     return NextResponse.json(

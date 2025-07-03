@@ -38,8 +38,8 @@ const SubscriptionPage = () => {
       popular: true
     },
     {
-      id: "premium",
-      name: "Premium",
+      id: "Elite",
+      name: "Elite",
       price: "29.99€",
       period: "/mois",
       description: "Pour les experts et entreprises",

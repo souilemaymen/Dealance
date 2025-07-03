@@ -42,7 +42,29 @@ const PublicationsPage = () => {
 
         fetchPublications();
     }, []);
+    
+    const subscriptionBadges = {
+        Null: null,
+        Basique: { 
+            text: "Basique", 
+            color: "bg-blue-500/10 text-blue-500" 
+        },
+        Pro: { 
+            text: "Pro", 
+            color: "bg-gray-400/10 text-gray-400" 
+        },
+        Elite: { 
+            text: "Elite", 
+            color: "bg-yellow-600/10 text-yellow-600" 
+        }
+    };
 
+    const stats = [
+        { label: "Projets", value: 12 },
+        { label: "Heures", value: 84 },
+        { label: "Tâches", value: 37 },
+    ];
+    
     const openModal = () => {
         if (session?.user?.userType === 'freelancer' && !session?.user?.hasSubscription) {
             setShowSubscriptionModal(true);
@@ -76,81 +98,81 @@ const PublicationsPage = () => {
         closeContactSubscriptionModal();
     };
 
-const checkUserSubscription = async (userId) => {
-  if (!userId) {
-    console.error("ID utilisateur non fourni");
-    return false;
-  }
-  
-  try {
-    const response = await fetch('/api/subscription/check', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
-      credentials: 'include',
-    });
+    const checkUserSubscription = async (userId) => {
+        if (!userId) {
+            console.error("ID utilisateur non fourni");
+            return false;
+        }
+        
+        try {
+            const response = await fetch('/api/subscription/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId }),
+                credentials: 'include',
+            });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Erreur serveur: ${response.status} - ${errorText}`);
-    }
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Erreur serveur: ${response.status} - ${errorText}`);
+            }
 
-    const data = await response.json();
-    return data.hasValidSubscription;
-  } catch (error) {
-    console.error('Error checking subscription:', error);
-    return false;
-  }
-};
+            const data = await response.json();
+            return data.hasValidSubscription;
+        } catch (error) {
+            console.error('Error checking subscription:', error);
+            return false;
+        }
+    };
 
-const handleContact = async (publication) => {
-  setSelectedPublication(publication);
-  
-  // Vérifiez si la session est chargée
-  if (session === null) {
-    console.log("Session en cours de chargement...");
-    return;
-  }
-  
-  // Vérifiez si l'utilisateur est connecté
-  if (!session) {
-    alert("Veuillez vous connecter pour contacter un professionnel");
-    return;
-  }
+    const handleContact = async (publication) => {
+        setSelectedPublication(publication);
+        
+        if (!session) {
+            alert("Veuillez vous connecter pour contacter un professionnel");
+            return;
+        }
 
-  // Utilisez le bon champ d'ID selon votre configuration NextAuth
-  const userId = session.userId ;
-  
-  if (!userId) {
-    console.error("ID utilisateur introuvable dans la session:", session);
-    alert("Erreur d'identification. Veuillez vous reconnecter.");
-    return;
-  }
+        const userId = session.userId;
+        
+        if (!userId) {
+            alert("Erreur d'identification. Veuillez vous reconnecter.");
+            return;
+        }
 
-  try {
-    const hasValidSubscription = await checkUserSubscription(userId);
+        try {
+            const response = await fetch('/api/subscription/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId }),
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                throw new Error('Erreur lors de la vérification de l\'abonnement');
+            }
+
+            const data = await response.json();
+            
+            if (data.hasValidSubscription) {
+                setShowContactModal(true);
+            } else {
+                setShowContactSubscriptionModal(true);
+            }
+        } catch (error) {
+            console.error("Erreur lors de la vérification de l'abonnement:", error);
+            setShowContactSubscriptionModal(true);
+        }
+    };
     
-    if (hasValidSubscription) {
-      setShowContactModal(true);
-    } else {
-      setShowContactSubscriptionModal(true);
-    }
-  } catch (error) {
-    console.error("Erreur lors de la vérification de l'abonnement:", error);
-    setShowContactSubscriptionModal(true);
-  }
-};
-
     const sendContactMessage = async (e) => {
         e.preventDefault();
         setIsSendingMessage(true);
         
         try {
-            // Simuler l'envoi du message
             await new Promise(resolve => setTimeout(resolve, 1500));
             setMessageSent(true);
             
-            // Réinitialiser après succès
             setTimeout(() => {
                 setMessageSent(false);
                 setContactMessage('');
@@ -238,29 +260,29 @@ const handleContact = async (publication) => {
             });
         }
     };
+    
     const handleSubscriptionSelect = async (type) => {
-  try {
-    const response = await fetch('/api/subscription/demandes', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ subscriptionType: type })
-    });
+        try {
+            const response = await fetch('/api/subscription/demandes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ subscriptionType: type })
+            });
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log("Demande créée:", data.demandeId);
-      // Rediriger ou afficher un message de succès
-    } else {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Erreur lors de la création");
-    }
-  } catch (error) {
-    console.error("Erreur:", error);
-    alert(error.message);
-  }
-};
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Demande créée:", data.demandeId);
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Erreur lors de la création");
+            }
+        } catch (error) {
+            console.error("Erreur:", error);
+            alert(error.message);
+        }
+    };
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -294,94 +316,106 @@ const handleContact = async (publication) => {
                         </button>
                     </div>
                     <div className="space-y-6">
-                        {publications.map((pub) => (
-                            <div key={pub._id} className="bg-white-100 dark:bg-white-200 rounded-xl shadow-lg overflow-hidden transition-all duration-300">
-                                <div className="p-6 border-b border-white-200 dark:border-white-100">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-4">
-                                            {pub.userId?.profileImage ? (
-                                                <img 
-                                                    src={pub.userId.profileImage} 
-                                                    alt="Profile"
-                                                    className="w-12 h-12 rounded-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="w-12 h-12 rounded-full bg-white-300 dark:bg-white-100"></div>
-                                            )}
-                                            <div>
-                                                <h3 className="font-dosis font-bold text-white-300 dark:text-white-50">
-                                                    {pub.userId?.fullName || 'Utilisateur inconnu'}
-                                                </h3>
-                                                <p className="text-sm font-geist-mono text-white-200 dark:text-white-100">
-                                                    {pub.userId?.userType || 'Membre'}
-                                                    <span className="mx-2"></span> 
-                                                    {pub.createdAt ? new Date(pub.createdAt).toLocaleDateString('fr-FR', {
-                                                        day: '2-digit',
-                                                        month: '2-digit',
-                                                        year: 'numeric',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit'
-                                                    }) : 'Date inconnue'}
-                                                </p>
+                        {publications.map((pub) => {
+                            const isCurrentUser = session?.userId === pub.userId?._id;
+                            
+                            return (
+                                <div key={pub._id} className="bg-white-100 dark:bg-white-200 rounded-xl shadow-lg overflow-hidden transition-all duration-300">
+                                    <div className="p-6 border-b border-white-200 dark:border-white-100">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-4">
+                                                {pub.userId?.profileImage ? (
+                                                    <img 
+                                                        src={pub.userId.profileImage} 
+                                                        alt="Profile"
+                                                        className="w-12 h-12 rounded-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-12 h-12 rounded-full bg-white-300 dark:bg-white-100"></div>
+                                                )}
+                                                <div>
+                                                    <button 
+                                                        onClick={() => router.push(`/profil/${pub.userId?._id}`)}
+                                                        className="font-dosis font-bold text-white-300 dark:text-white-50 hover:underline focus:outline-none text-left"
+                                                    >
+                                                        {pub.userId?.fullName || 'Utilisateur inconnu'}
+                                                    </button>
+                                                    <p className="text-sm font-geist-mono text-white-200 dark:text-white-100">
+                                                        {pub.userId?.userType || 'Membre'}
+                                                        <span className="mx-2"></span> 
+                                                        {pub.createdAt ? new Date(pub.createdAt).toLocaleDateString('fr-FR', {
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        }) : 'Date inconnue'}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <button className="p-2 rounded-full hover:bg-white-50 dark:hover:bg-white-300 transition-colors">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white-200 dark:text-white-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="p-6">
-                                    <p className="font-geist-mono text-white-300 dark:text-white-100 mb-4">
-                                        {pub.content}
-                                    </p>
-
-                                    {pub.media && (
-                                        <div className="mb-4 rounded-lg overflow-hidden">
-                                            <img 
-                                                src={pub.media} 
-                                                alt="Média de la publication" 
-                                                className="w-full h-auto max-h-96 object-contain"
-                                            />
-                                        </div>
-                                    )}
-                                    {pub.budget && (
-                                        <div className="mb-4 p-3 bg-white-50 dark:bg-white-300 rounded-lg border border-purple-500">
-                                            <div className="flex items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-purple-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            <button className="p-2 rounded-full hover:bg-white-50 dark:hover:bg-white-300 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white-200 dark:text-white-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
                                                 </svg>
-                                            <span className="font-geist-mono font-bold text-purple-500">
-                                                        Budget: {pub.budget} Dt
-                                            </span>
-                                            </div>
+                                            </button>
                                         </div>
-                                    )}
-                                    
-                                    <div className="flex flex-wrap gap-2 mb-6">
-                                        {pub.tags?.map((tag, index) => (
-                                            <span 
-                                                key={`tag-${pub._id}-${index}`} 
-                                                className="text-xs font-geist-mono px-3 py-1 bg-white-50 dark:bg-white-300 text-white-200 rounded-full"
-                                            >
-                                                #{tag}
-                                            </span>
-                                        ))}
                                     </div>
 
-                                    <div className="flex justify-end mt-4">
-                                        <button 
-                                            onClick={() => handleContact(pub)}
-                                            className="font-geist-mono px-4 py-2 bg-green-500 hover:bg-green-600 text-white-50 rounded-lg transition-colors"
-                                        >
-                                            Contacter
-                                        </button>
+                                    <div className="p-6">
+                                        <p className="font-geist-mono text-white-300 dark:text-white-100 mb-4">
+                                            {pub.content}
+                                        </p>
+
+                                        {pub.media && (
+                                            <div className="mb-4 rounded-lg overflow-hidden">
+                                                <img 
+                                                    src={pub.media} 
+                                                    alt="Média de la publication" 
+                                                    className="w-full h-auto max-h-96 object-contain"
+                                                />
+                                            </div>
+                                        )}
+                                        {pub.budget && (
+                                            <div className="mb-4 p-3 bg-white-50 dark:bg-white-300 rounded-lg border border-purple-500">
+                                                <div className="flex items-center">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-purple-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                <span className="font-geist-mono font-bold text-purple-500">
+                                                            Budget: {pub.budget} Dt
+                                                </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        <div className="flex flex-wrap gap-2 mb-6">
+                                            {pub.tags?.map((tag, index) => (
+                                                <span 
+                                                    key={`tag-${pub._id}-${index}`} 
+                                                    className="text-xs font-geist-mono px-3 py-1 bg-white-50 dark:bg-white-300 text-white-200 rounded-full"
+                                                >
+                                                    #{tag}
+                                                </span>
+                                            ))}
+                                        </div>
+
+                                        {!isCurrentUser && (
+                                            <div className="flex justify-end mt-4">
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleContact(pub);
+                                                    }}
+                                                    className="font-geist-mono px-4 py-2 bg-green-500 hover:bg-green-600 text-white-50 rounded-lg transition-colors"
+                                                >
+                                                    Contacter
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     <div className="mt-10 text-center">
@@ -392,7 +426,6 @@ const handleContact = async (publication) => {
                 </div>
             </div>
 
-            {/* Modale pour le formulaire */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
                     <div className="bg-white-50 dark:bg-white-300 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -549,7 +582,6 @@ const handleContact = async (publication) => {
                 </div>
             )}
 
-            {/* Modale d'abonnement pour freelancers */}
             {showSubscriptionModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
                     <div className="bg-white-50 dark:bg-white-300 rounded-2xl shadow-2xl w-full max-w-md">
@@ -616,7 +648,6 @@ const handleContact = async (publication) => {
                 </div>
             )}
 
-            {/* Modale d'abonnement pour contact */}
             {showContactSubscriptionModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
                     <div className="bg-white-50 dark:bg-white-300 rounded-2xl shadow-2xl w-full max-w-md">
@@ -683,7 +714,6 @@ const handleContact = async (publication) => {
                 </div>
             )}
 
-            {/* Modale de contact */}
             {showContactModal && selectedPublication && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
                     <div className="bg-white-50 dark:bg-white-300 rounded-2xl shadow-2xl w-full max-w-md">

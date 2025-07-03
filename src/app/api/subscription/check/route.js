@@ -25,7 +25,7 @@ export async function POST(request) {
     }
 
     // Vérifiez si l'abonnement est valide (non "Null")
-const hasValidSubscription = subscription.subscriptionType !== "Null";
+const hasValidSubscription = subscription.subscriptionType !== "Null" && subscription.subscriptionType !== null;
 
     return NextResponse.json(
       { 
