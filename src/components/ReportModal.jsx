@@ -28,7 +28,7 @@ export default function ReportModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-
+  const [currentUserId, setCurrentUserId] = useState(null);  
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -44,7 +44,7 @@ export default function ReportModal({
       await onSubmit(selectedReason);
       setSuccess(true);
     } catch (err) {
-      setError(err.message || "Une erreur s'est produite");
+      setError(err.message.includes("session") ? "Votre session a expiré. Veuillez vous reconnecter.": err.message || "Une erreur s'est produite");
     } finally {
       setSubmitting(false);
     }

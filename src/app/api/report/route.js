@@ -1,6 +1,7 @@
 // app/api/report/route.js
 import dbConnect from "@/app/api/lib/dbConnect";
 import mongoose from "mongoose";
+import { ObjectId } from 'mongodb';
 
 // Création du schéma et modèle pour les signalements
 const reportSchema = new mongoose.Schema({
@@ -40,19 +41,16 @@ export async function POST(request) {
     const { reportedUserId, reporterUserId, reason } = await request.json();
     
     // Validation des données
-    if (!reportedUserId || !reporterUserId || !reason) {
+ if (!reportedUserId || !reporterUserId || !reason) {
       return new Response(JSON.stringify({
-        error: "Tous les champs sont requis: reportedUserId, reporterUserId, reason"
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+        error: "Tous les champs sont requis"
+      }), { status: 400 });
     }
 
     // Création du nouveau signalement
     const newReport = new Report({
-      reportedUserId,
-      reporterUserId,
+      reportedUserId: new ObjectId(reportedUserId),
+      reporterUserId: new ObjectId(reporterUserId),
       reason
     });
 

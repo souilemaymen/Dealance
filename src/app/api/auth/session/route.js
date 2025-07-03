@@ -52,7 +52,7 @@ export async function GET(req) {
     });
 
     return NextResponse.json({ 
-      userId: user._id,
+      userId: user._id.toString(),
       fullName: user.fullName,
       profileImage: user.profileImage,
       email: user.email,

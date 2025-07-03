@@ -40,6 +40,7 @@ export default function UserProfilePage() {
   const [isOwner, setIsOwner] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const router = useRouter();
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -65,28 +66,58 @@ export default function UserProfilePage() {
     if (userId) fetchUserProfile();
   }, [userId, session]);
 
+  useEffect(() => {
+    // Récupérer l'ID utilisateur depuis le token
+    const getUserIdFromToken = async () => {
+      try {
+        const response = await fetch('/api/auth/session');
+        const sessionData = await response.json();
+        if (sessionData.userId) {
+          setCurrentUserId(sessionData.userId);
+        }
+      } catch (err) {
+        console.error("Erreur de récupération de session", err);
+      }
+    };
+
+    if (status === "authenticated" && session?.user?.id) {
+      setCurrentUserId(session.user.id);
+    } else {
+      getUserIdFromToken();
+    }
+  }, [status, session]);
+
   const handleReportSubmit = async (reason) => {
     try {
+      // Utiliser currentUserId au lieu de session.user.id
+      if (!currentUserId) {
+        throw new Error("Votre session a expiré. Veuillez vous reconnecter.");
+      }
+      
+      if (!userId) {
+        throw new Error("ID utilisateur manquant");
+      }
+
       const response = await fetch('/api/report', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           reportedUserId: userId,
-          reporterUserId: session.user.id,
+          reporterUserId: currentUserId, // Ici
           reason
         })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Erreur lors de l'envoi du signalement");
-      }
-      
-      return await response.json();
-    } catch (error) {
-      throw error;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Erreur lors de l'envoi du signalement");
     }
-  };
+    
+    return await response.json();
+  } catch (error) {
+    throw error;
+  }
+};
 
   if (loading) {
     return (
@@ -180,14 +211,11 @@ export default function UserProfilePage() {
                       </Link>
                     )}
                     
-                    {!isOwner && session && (
-                      <button 
-                        onClick={() => setShowReportModal(true)}
-                        className="flex items-center px-5 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl hover:opacity-90 transition-all duration-300 font-geist-sans shadow-md hover:shadow-lg transform hover:-translate-y-1"
-                      >
+                    {!isOwner && currentUserId && ( // ← Vérification en chaîne ajoutée
+                        <button onClick={() => setShowReportModal(true)}>
                         <FontAwesomeIcon icon={faUserShield} className="h-4 w-4 mr-2" />
                         Signaler
-                      </button>
+                        </button>
                     )}
                   </div>
                 </div>
